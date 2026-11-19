@@ -1,11 +1,12 @@
 import type { CopyId } from "../../domains/constraints";
 import type { Copy } from "../../domains/entities";
 import type { CopyRepository } from "../../domains/repositories";
+import { sampleCatalog } from "./sampleCatalog";
 
 export class InMemoryCopyRepository implements CopyRepository {
     private readonly copiesById = new Map<CopyId, Copy>();
 
-    public constructor(catalog: readonly Copy[] = []) {
+    public constructor(catalog: readonly Copy[] = sampleCatalog) {
         for (const copy of catalog) {
             this.copiesById.set(copy.copyId, copy);
         }
