@@ -1,5 +1,5 @@
-import type { CopyId, Result } from "../constraints";
-import type { ReturnedLoan } from "../entities";
+import { failure, success, type CopyId, type Result } from "../constraints";
+import { closeLoan, type ReturnedLoan } from "../entities";
 import type { Clock } from "../ports";
 import type { CopyRepository, LoanRepository } from "../repositories";
 
@@ -21,5 +21,18 @@ export async function returnCopy(
     input: ReturnCopyInput,
     dependencies: ReturnCopyDependencies,
 ): Promise<Result<ReturnedLoan, ReturnCopyErrorInCheckOrder>> {
-    throw new Error("Not implemented");
+    const copy = await dependencies.copyRepository.findByCopyId(input.copyId);
+    if (copy === null) {
+        return failure({ code: "COPY_NOT_FOUND", copyId: input.copyId });
+    }
+
+    const currentLoanOfCopy = await dependencies.loanRepository.findActiveLoanByCopyId(copy.copyId);
+    if (currentLoanOfCopy === null) {
+        return failure({ code: "COPY_HAS_NO_ACTIVE_LOAN", copyId: copy.copyId });
+    }
+
+    const returnedLoan = closeLoan(currentLoanOfCopy, dependencies.clock.today());
+    await dependencies.loanRepository.insertOrReplaceByLoanId(returnedLoan);
+
+    return success(returnedLoan);
 }
